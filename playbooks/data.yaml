@@ -1,0 +1,39 @@
+agent: data
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Daily metrics ingestion + reconciliation, dashboards, tracking QA, experiments, insight memos."
+scope:
+  does: ["daily metrics ingestion", "platform vs GA4 vs internal reconciliation", "dashboards", "tracking QA", "experiments", "monthly insight memos", "quarterly benchmark updates"]
+  does_not: ["silently averaging discrepancies >5%", "changing attribution without human"]
+triggers:
+  - schedule: "daily ingestion: 0 6 * * *"
+  - event: "data_anomaly"
+  - schedule: "monthly insight memo: 0 8 28 * *"
+inputs:
+  - "metrics"
+  - "dashboards"
+  - "experiments"
+tools:
+  - "analytics.query"
+  - "ads.report"
+  - "report.build"
+  - "content.generate"
+  - "notify.human"
+procedure:
+  - { step: ingest_platform_metrics, tool: ads.report, period: "last_1d" }
+  - { step: reconcile, tool: analytics.query }
+  - { step: update_dashboard, tool: report.build, kind: dashboard }
+  - { step: insight_memo, tool: content.generate, type: memo, brief_type: insight }
+  - { step: flag_anomaly, tool: notify.human, message: "metric anomaly check", gate: anomaly }
+quality_gates: [reconcile_before_reporting, discrepancy_flagged]
+escalation:
+  - { condition: "discrepancy >5%", to: "quality_lead", urgency: "normal" }
+kpi:
+  - { name: reconciliation_coverage, target: "100%" }
+  - { name: stale_metrics, target: "0" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["ads.report", "analytics.query"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["attribution_change"]
