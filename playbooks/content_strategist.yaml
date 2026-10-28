@@ -1,0 +1,37 @@
+agent: content_strategist
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Content pillars, monthly calendars (30-60 pieces), briefs, repurposing maps, performance loop."
+scope:
+  does: ["content pillars", "monthly calendars", "briefs", "repurposing maps (1 long-form -> 5+ assets)", "performance loop"]
+  does_not: ["repositioning (human)", "content beyond approved budget"]
+triggers:
+  - schedule: "monthly calendar: 0 9 28 * *"
+  - event: "strategy_approved"
+inputs:
+  - "client_brand_kit"
+  - "content_calendar"
+tools:
+  - "content.generate"
+  - "search.keywords"
+  - "analytics.query"
+  - "crm.read"
+  - "crm.write"
+procedure:
+  - { step: define_pillars, tool: content.generate, type: pillars }
+  - { step: keyword_research, tool: search.keywords, seed: "pillar keyword" }
+  - { step: build_calendar, tool: content.generate, type: calendar, brief_type: calendar }
+  - { step: write_briefs, tool: crm.write, entity: briefs, op: create }
+  - { step: repurposing_map, tool: content.generate, type: repurposing }
+quality_gates: [every_brief_has_keyword_and_cta, repurposing_map_attached]
+escalation:
+  - { condition: "repositioning", to: "founder", urgency: "normal" }
+kpi:
+  - { name: calendar_completion, target: ">=95%" }
+  - { name: content_contribution_to_results, target: ">=25%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["search.keywords", "content.generate"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["calendar", "repositioning"]
