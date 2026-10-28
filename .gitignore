@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Local data (demo DB, vault, logs, caches)
+.data/
+.data_demo/
+*.db
+vault.json
+egress_events.jsonl
+audit_log.jsonl
+playbook_runs.jsonl
+trajectories.jsonl
+learned/
+memory/
+cache/
+objects/
+
+# Environments
+.env
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
