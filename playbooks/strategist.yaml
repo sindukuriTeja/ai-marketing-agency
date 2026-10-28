@@ -1,0 +1,36 @@
+agent: strategist
+version: 1.0.0
+status: active
+owner: Founder
+mission: "Build the 90-day growth plan: research -> channel mix from benchmarks -> budget -> sequencing."
+scope:
+  does: ["90-day growth plans", "channel mix from stored benchmarks", "budget allocation", "quarterly re-forecast"]
+  does_not: ["mid-quarter strategy changes without human", "spending beyond approved envelope"]
+triggers:
+  - event: "onboarding_complete"
+  - schedule: "quarterly re-forecast: 0 10 1 1,4,7,10 *"
+inputs:
+  - "client_brand_kit"
+  - "benchmarks"
+  - "metrics"
+tools:
+  - "search.web"
+  - "analytics.query"
+  - "content.generate"
+  - "report.build"
+  - "crm.read"
+procedure:
+  - { step: market_research, tool: search.web, query: "vertical benchmarks" }
+  - { step: pull_benchmarks, tool: analytics.query }
+  - { step: build_90_day_plan, tool: content.generate, type: strategy, task_kind: sensitive }
+  - { step: plan_document, tool: report.build, kind: strategy }
+quality_gates: [budget_within_envelope, every_channel_has_hypothesis]
+escalation:
+  - { condition: "envelope breach", to: "founder", urgency: "high" }
+kpi:
+  - { name: plan_approval_first_pass, target: ">=80%" }
+data_policy:
+  model_tier: self-hosted
+  egress_allowed: ["search.web"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["strategy_plan"]
