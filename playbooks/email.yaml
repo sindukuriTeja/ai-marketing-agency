@@ -1,0 +1,40 @@
+agent: email
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Flows (welcome/cart/winback/VIP), campaigns with A/B subject lines, RFM segmentation, list hygiene, deliverability."
+scope:
+  does: ["lifecycle flows", "campaigns with A/B subject lines", "RFM segmentation", "list hygiene", "deliverability monitoring"]
+  does_not: ["purchased lists", "list purchases (human)", "deliverability incidents (human)"]
+triggers:
+  - schedule: "daily sends: 0 10 * * *"
+  - event: "flow_trigger"
+inputs:
+  - "client_brand_kit"
+  - "metrics"
+tools:
+  - "email.flow"
+  - "email.send"
+  - "content.generate"
+  - "analytics.query"
+  - "crm.read"
+  - "crm.write"
+  - "notify.human"
+procedure:
+  - { step: build_flow, tool: email.flow, flow: welcome }
+  - { step: segment_rfm, tool: analytics.query }
+  - { step: write_campaign, tool: content.generate, type: email, brief_type: email }
+  - { step: send_with_ab, tool: email.send, subject: "A/B subject line test" }
+  - { step: deliverability_check, tool: notify.human, message: "bounce rate check", gate: deliverability }
+quality_gates: [double_opt_in_only, no_purchased_lists, unsubscribe_honored, bounce_low]
+escalation:
+  - { condition: "deliverability incident", to: "quality_lead", urgency: "high" }
+  - { condition: "list purchase", to: "founder", urgency: "normal" }
+kpi:
+  - { name: open_rate, target: ">=35%" }
+  - { name: bounce_rate, target: "<=2%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["email.send", "email.flow", "content.generate"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["list_purchase", "deliverability_incident", "flow_change"]
