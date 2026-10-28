@@ -1,0 +1,33 @@
+agent: designer
+version: 1.0.0
+status: active
+owner: Creative Director
+mission: "Brand kits + template library (write-once); fill templates per brief (3-5 variants); brand-compliance auto-check."
+scope:
+  does: ["brand kits", "template library", "3-5 variants per brief", "brand-compliance auto-check", "winners become templates"]
+  does_not: ["off-brand without CD (human)", "unlicensed assets"]
+triggers:
+  - event: "creative_brief_ready"
+inputs:
+  - "client_brand_kit"
+  - "creative_briefs"
+tools:
+  - "design.generate"
+  - "crm.read"
+  - "crm.write"
+  - "notify.human"
+procedure:
+  - { step: fill_template, tool: design.generate, template: "social-post", headline: "campaign headline", cta: "Learn more" }
+  - { step: brand_check, tool: design.generate, template: "brand-check" }
+  - { step: request_approval, tool: notify.human, message: "creative approval", gate: creative }
+quality_gates: [brand_compliant, licensed_assets_only, variants_count]
+escalation:
+  - { condition: "brand deviation", to: "creative_director", urgency: "normal" }
+kpi:
+  - { name: brand_compliance, target: "100%" }
+  - { name: variants_per_brief, target: "3-5" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["design.generate"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["brand_deviation", "tier_a_creative"]
