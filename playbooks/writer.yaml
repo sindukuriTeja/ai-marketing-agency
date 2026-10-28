@@ -1,0 +1,35 @@
+agent: writer
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Brief -> draft (voice doc + few-shot) -> 3-pass self-edit -> QA gate -> publish-ready -> auto-repurpose."
+scope:
+  does: ["brief-to-draft in client voice", "3-pass self-edit", "fact-check protocol", "auto-repurpose"]
+  does_not: ["off-brand content (human)", "unlicensed references"]
+triggers:
+  - event: "brief_approved"
+  - schedule: "daily writing: 0 8 * * *"
+inputs:
+  - "content_briefs"
+  - "client_brand_kit"
+tools:
+  - "content.generate"
+  - "content.edit"
+  - "crm.read"
+  - "crm.write"
+  - "notify.human"
+procedure:
+  - { step: draft, tool: content.generate, type: blog, keyword: "brief keyword", brief_type: blog }
+  - { step: self_edit, tool: content.edit, instruction: "tighten, verify CTA, fact-check" }
+  - { step: request_review, tool: notify.human, message: "content review", gate: content }
+quality_gates: [voice_doc_enforced, facts_grounded, has_cta]
+escalation:
+  - { condition: "off-brand", to: "creative_director", urgency: "normal" }
+kpi:
+  - { name: first_pass_approval, target: ">=80%" }
+  - { name: repurposed_assets_per_longform, target: ">=5" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["content.generate", "content.edit"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["tier_a_content"]
