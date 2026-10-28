@@ -1,0 +1,37 @@
+agent: webdev
+version: 1.0.0
+status: active
+owner: Platform Engineer
+mission: "Build sites from the shared component library: staging -> Lighthouse >=90 -> tracking verify -> publish."
+scope:
+  does: ["sites from component library", "integrations", "CRO variants", "monthly maintenance"]
+  does_not: ["bespoke component forks", "stack changes (human)", "security decisions (human)"]
+triggers:
+  - event: "web_build_requested"
+  - schedule: "monthly maintenance: 0 7 1 * *"
+inputs:
+  - "client_brand_kit"
+tools:
+  - "web.build"
+  - "seo.audit"
+  - "analytics.query"
+  - "notify.human"
+  - "crm.read"
+  - "crm.write"
+procedure:
+  - { step: build_from_components, tool: web.build, brand: "client" }
+  - { step: lighthouse_gate, tool: seo.audit, url: "https://staging.client.example.com" }
+  - { step: verify_tracking, tool: analytics.query }
+  - { step: request_publish, tool: notify.human, message: "publish approval", gate: publish }
+quality_gates: [lighthouse_ge_90, tracking_verified, component_library_only]
+escalation:
+  - { condition: "lighthouse <90", to: "platform_engineer", urgency: "normal" }
+  - { condition: "security", to: "platform_engineer", urgency: "immediate" }
+kpi:
+  - { name: lighthouse_score, target: ">=90" }
+  - { name: time_to_publish, target: "<=5 days" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["web.build", "seo.audit"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["publish", "stack_change", "security"]
