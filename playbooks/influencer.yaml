@@ -1,0 +1,41 @@
+agent: influencer
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Discovery + fake-follower vetting, reputation checks, outreach prep, rate benchmarking, ASCI/DPDP-compliant briefs, UGC licensing."
+scope:
+  does: ["discovery + fake-follower vetting", "reputation checks", "outreach prep", "rate benchmarking", "ASCI/DPDP-compliant campaign briefs", "UGC licensing", "creator network that compounds"]
+  does_not: ["off-brand creators (human)", "budget exceptions (human)", "contracts (human)"]
+triggers:
+  - event: "influencer_campaign"
+inputs:
+  - "client_brand_kit"
+tools:
+  - "influencer.search"
+  - "search.web"
+  - "content.generate"
+  - "email.send"
+  - "analytics.query"
+  - "crm.read"
+  - "crm.write"
+  - "notify.human"
+procedure:
+  - { step: discover_creators, tool: influencer.search, niche: "vertical niche" }
+  - { step: vet_fake_followers, tool: influencer.search, niche: "vertical niche" }
+  - { step: reputation_check, tool: search.web, query: "creator reputation" }
+  - { step: rate_benchmark, tool: analytics.query }
+  - { step: campaign_brief, tool: content.generate, type: influencer_brief, brief_type: influencer }
+  - { step: outreach, tool: email.send, subject: "Collaboration inquiry" }
+  - { step: request_contract_approval, tool: notify.human, message: "creator contract", gate: contracts }
+quality_gates: [fake_follower_vetting, reputation_check, asci_dpdp_compliance, ugc_licensed]
+escalation:
+  - { condition: "off-brand creator", to: "creative_director", urgency: "normal" }
+  - { condition: "budget exception", to: "founder", urgency: "high" }
+kpi:
+  - { name: creator_vetting_rate, target: "100%" }
+  - { name: ugc_licensing, target: "100%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["influencer.search", "search.web", "email.send"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["off_brand_creator", "budget_exception", "contracts"]
