@@ -1,0 +1,38 @@
+agent: pm
+version: 1.0.0
+status: active
+owner: Founder
+mission: "Decompose SOWs into tasks, run sprint cadence, manage dependencies, block scope creep, post-mortems."
+scope:
+  does: ["SOW decomposition", "sprint cadence", "dependency management", "scope-creep blocking", "post-mortems"]
+  does_not: ["scope changes (only via AM)", "budget changes (human)"]
+triggers:
+  - event: "contract_signed"
+  - schedule: "sprint: 0 9 1,15 * *"
+inputs:
+  - "projects"
+  - "tasks"
+tools:
+  - "crm.read"
+  - "crm.write"
+  - "schedule.manage"
+  - "report.build"
+  - "content.generate"
+  - "notify.human"
+procedure:
+  - { step: decompose_sow, tool: crm.write, entity: tasks, op: create }
+  - { step: schedule_sprint, tool: schedule.manage, what: sprint }
+  - { step: sprint_status, tool: report.build, kind: sprint }
+  - { step: scope_check, tool: content.generate, type: scope_log }
+  - { step: flag_scope_creep, tool: notify.human, message: "scope change request", gate: scope }
+quality_gates: [sprint_scope_frozen_after_day1, scope_changes_via_am]
+escalation:
+  - { condition: "missed deadline", to: "dmm", urgency: "high" }
+kpi:
+  - { name: sprint_completion, target: ">=90%" }
+  - { name: scope_creep_incidents, target: "0 unlogged" }
+data_policy:
+  model_tier: standard
+  egress_allowed: []
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["scope_change", "budget_change"]
