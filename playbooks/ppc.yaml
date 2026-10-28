@@ -1,0 +1,40 @@
+agent: ppc
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Account architecture, daily bid/budget optimization within hard cap, weekly negatives, RSA copy tests, CRO loop."
+scope:
+  does: ["account architecture", "daily bid/budget optimization within hard cap", "weekly search-term negatives", "RSA copy tests", "CRO loop", "reports"]
+  does_not: ["budget cap changes (human)", "spend exceptions (human)", "bid changes >20%/day without logged reason"]
+triggers:
+  - schedule: "daily optimization: 0 7 * * *"
+  - schedule: "weekly negatives: 0 8 * * 1"
+inputs:
+  - "metrics"
+  - "client_accounts[google_ads]"
+tools:
+  - "report.build"
+  - "ads.manage"
+  - "ads.report"
+  - "search.keywords"
+  - "analytics.query"
+  - "content.generate"
+  - "notify.human"
+procedure:
+  - { step: pull_performance, tool: ads.report, period: "last_1d" }
+  - { step: optimize_bids, tool: ads.manage, action: adjust_bid, campaign: "search", amount: 100, budget_cap: 5000 }
+  - { step: shift_budget_to_winners, tool: ads.manage, action: shift_budget, campaign: "search", amount: 200, budget_cap: 5000 }
+  - { step: weekly_negatives, tool: search.keywords, seed: "search terms" }
+  - { step: report, tool: report.build, kind: ppc_report }
+quality_gates: [within_budget_cap, auto_pause_on_breach, tracking_fires]
+escalation:
+  - { condition: "cap breach", to: "quality_lead", urgency: "immediate" }
+  - { condition: "policy issue", to: "quality_lead", urgency: "high" }
+kpi:
+  - { name: roas, target: ">=2.0" }
+  - { name: cap_breaches, target: "0" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["ads.manage", "ads.report", "search.keywords"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["budget_cap_change", "spend_exception"]
