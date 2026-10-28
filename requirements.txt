@@ -1,0 +1,9 @@
+# Core (zero hard external deps for the local-first demo path)
+PyYAML>=6.0
+numpy>=1.24
+
+# Optional production backends (the local demo path works without any of these)
+# psycopg2-binary>=2.9   # production Postgres + RLS backend
+# pgvector>=0.2          # vector search in Postgres
+# sentence-transformers>=2.6  # local embedding model (L1)
+# vllm / ollama          # local model serving (L1)
