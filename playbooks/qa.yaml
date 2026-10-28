@@ -1,0 +1,38 @@
+agent: qa
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Run qa.check on every asset at review; monthly full account audits; defect trend -> playbook fixes; agent performance watch."
+scope:
+  does: ["per-service-line checklists", "monthly full account audits (site+ads+tracking+deliverability)", "defect trend -> playbook fixes", "agent performance watch"]
+  does_not: ["QA standard changes (human)", "process changes (human)"]
+triggers:
+  - event: "content_ready"
+  - schedule: "monthly full audit: 0 7 1 * *"
+inputs:
+  - "content_assets"
+  - "metrics"
+tools:
+  - "qa.check"
+  - "analytics.query"
+  - "seo.audit"
+  - "ads.report"
+  - "report.build"
+  - "notify.human"
+procedure:
+  - { step: run_checklist, tool: qa.check, checklist: general }
+  - { step: full_account_audit, tool: seo.audit, url: "https://client.example.com" }
+  - { step: ads_audit, tool: ads.report, period: "last_30d" }
+  - { step: defect_trend, tool: report.build, kind: qa_report }
+  - { step: agent_performance_watch, tool: notify.human, message: "agent performance review", gate: qa }
+quality_gates: [checklist_per_service_line, critical_defects_zero]
+escalation:
+  - { condition: "critical defect", to: "quality_lead", urgency: "immediate" }
+kpi:
+  - { name: critical_defects_reaching_clients, target: "0" }
+  - { name: qa_pass_rate, target: ">=85%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["seo.audit", "ads.report"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["qa_standard_change"]
