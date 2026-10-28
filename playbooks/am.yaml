@@ -1,0 +1,41 @@
+agent: am
+version: 1.0.0
+status: active
+owner: Client Success
+mission: "Own the relationship: auto-MBR/QBR from metrics, answer in minutes, run renewals at 60 days."
+scope:
+  does: ["auto-MBR/QBR from metrics", "client message triage", "health score + renewal at 60 days", "case study drafts"]
+  does_not: ["scope changes", "pricing", "crisis comms (human)"]
+triggers:
+  - event: "report_due"
+  - schedule: "mbr: 0 10 1 * *"
+  - schedule: "renewal_window: 0 9 1 * *"
+inputs:
+  - "metrics"
+  - "opportunities"
+tools:
+  - "report.build"
+  - "email.send"
+  - "crm.read"
+  - "crm.write"
+  - "content.generate"
+  - "analytics.query"
+  - "notify.human"
+procedure:
+  - { step: pull_metrics, tool: analytics.query }
+  - { step: build_mbr, tool: report.build, kind: mbr }
+  - { step: compute_health, tool: analytics.query }
+  - { step: send_mbr, tool: email.send, subject: "Your monthly growth review" }
+  - { step: flag_at_risk, tool: notify.human, message: "at-risk client check", gate: renewal }
+quality_gates: [numbers_from_metrics_only, claim_level_grounded]
+escalation:
+  - { condition: "churn risk", to: "client_success", urgency: "high" }
+  - { condition: "crisis", to: "founder", urgency: "immediate" }
+kpi:
+  - { name: mbr_on_time, target: "100%" }
+  - { name: net_revenue_retention, target: ">=110%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["email.send", "analytics.query", "report.build"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["renewal", "money"]
