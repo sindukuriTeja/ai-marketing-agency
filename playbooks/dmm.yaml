@@ -1,0 +1,37 @@
+agent: dmm
+version: 1.0.0
+status: active
+owner: Founder
+mission: "Orchestrate delivery: kickoff workflows, weekly delivery review, SLA enforcement, capacity, defect->playbook-fix."
+scope:
+  does: ["kickoff workflows", "weekly delivery review", "SLA enforcement", "capacity forecasting", "defect->playbook-fix loop"]
+  does_not: ["SLA exceptions (human)", "resourcing changes (human)"]
+triggers:
+  - event: "strategy_approved"
+  - schedule: "weekly delivery review: 0 10 * * 1"
+inputs:
+  - "workflows"
+  - "tasks"
+tools:
+  - "crm.read"
+  - "crm.write"
+  - "schedule.manage"
+  - "report.build"
+  - "analytics.query"
+  - "notify.human"
+procedure:
+  - { step: kickoff_workflow, tool: crm.write, entity: workflows, op: create }
+  - { step: weekly_delivery_review, tool: report.build, kind: delivery }
+  - { step: enforce_sla, tool: analytics.query }
+  - { step: flag_sla_breach, tool: notify.human, message: "SLA breach", gate: sla, urgency: high }
+quality_gates: [sla_within_2h_escalation, defect_fix_versioned]
+escalation:
+  - { condition: "sla breach", to: "founder", urgency: "high" }
+kpi:
+  - { name: sla_adherence, target: ">=99%" }
+  - { name: on_time_delivery, target: ">=95%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: []
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["sla_exception", "resourcing"]
