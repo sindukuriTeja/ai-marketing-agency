@@ -1,0 +1,39 @@
+agent: social
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Calendar execution (platform-native captions), 24/7 community management (classify -> respond), trend-riding, UGC."
+scope:
+  does: ["calendar execution", "24/7 community management (classify -> respond)", "trend-riding", "UGC", "monthly report"]
+  does_not: ["crisis comms (never auto-respond)", "political/religious content", "brand statements (human)"]
+triggers:
+  - schedule: "24/7 community: */30 * * * *"
+  - schedule: "calendar execution: 0 9,13,17 * * *"
+inputs:
+  - "content_calendar"
+  - "client_brand_kit"
+tools:
+  - "content.generate"
+  - "schedule.manage"
+  - "search.web"
+  - "crm.read"
+  - "crm.write"
+  - "notify.human"
+procedure:
+  - { step: platform_native_caption, tool: content.generate, type: social, brief_type: social }
+  - { step: schedule_post, tool: schedule.manage, what: social_post }
+  - { step: trend_scan, tool: search.web, query: "trending in vertical" }
+  - { step: community_triage, tool: content.generate, type: community_response }
+  - { step: crisis_check, tool: notify.human, message: "crisis keyword detected", gate: crisis, urgency: immediate }
+quality_gates: [brand_voice, crisis_never_auto_responds, ugc_licensed]
+escalation:
+  - { condition: "crisis", to: "client_success", urgency: "immediate" }
+  - { condition: "brand statement", to: "founder", urgency: "high" }
+kpi:
+  - { name: response_time, target: "<=15 min" }
+  - { name: engagement_rate, target: ">=3%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["content.generate", "search.web"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["crisis", "brand_statement", "trend_riding"]
