@@ -1,0 +1,39 @@
+agent: bde
+version: 1.0.0
+status: active
+owner: Founder
+mission: "Run the 24/7 pipeline: enrich + score leads, draft proposals, book discovery calls."
+scope:
+  does: ["lead enrichment + BANT scoring", "personalized outreach", "proposal drafting from vertical playbooks + price card"]
+  does_not: ["pricing exceptions", "discounts >10%", "contract signing"]
+triggers:
+  - event: "lead_qualified"
+  - schedule: "daily outbound: 0 9 * * 1-5"
+inputs:
+  - "leads"
+  - "proposals"
+tools:
+  - "search.web"
+  - "content.generate"
+  - "email.send"
+  - "crm.read"
+  - "crm.write"
+  - "doc.draft"
+  - "schedule.manage"
+procedure:
+  - { step: enrich_lead, tool: search.web, query: "company research" }
+  - { step: draft_personalized_pitch, tool: content.generate, type: outreach, brief_type: outreach }
+  - { step: draft_proposal, tool: doc.draft, kind: proposal }
+  - { step: send_outreach, tool: email.send, subject: "Growth plan for your team" }
+  - { step: book_discovery, tool: schedule.manage, what: discovery_call }
+quality_gates: [enriched_before_outreach, price_from_card_only]
+escalation:
+  - { condition: "discount", to: "founder", urgency: "high" }
+kpi:
+  - { name: qualified_leads_per_week, target: ">=10" }
+  - { name: proposal_to_close, target: ">=25%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["search.web", "content.generate", "email.send"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["money", "contracts"]
