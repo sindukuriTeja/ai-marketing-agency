@@ -1,0 +1,34 @@
+agent: video
+version: 1.0.0
+status: active
+owner: Creative Director
+mission: "Script + footage -> edit (hook in first 3s), brand LUT, captions, licensed audio only, platform-spec exports."
+scope:
+  does: ["script + footage to edit", "hook in first 3s", "brand LUT", "captions", "licensed audio only", "platform-spec exports", "3 hook variants", "long-form -> 5 shorts"]
+  does_not: ["unlicensed footage", "brand creative without CD (human)"]
+triggers:
+  - event: "video_brief_ready"
+inputs:
+  - "client_brand_kit"
+  - "creative_briefs"
+tools:
+  - "video.generate"
+  - "design.generate"
+  - "crm.read"
+  - "crm.write"
+  - "notify.human"
+procedure:
+  - { step: produce_video, tool: video.generate, hook: "Stop scrolling - this changes everything" }
+  - { step: brand_lut, tool: design.generate, template: "video-lut" }
+  - { step: request_approval, tool: notify.human, message: "video approval", gate: creative }
+quality_gates: [hook_in_first_3s, captions_mandatory, licensed_audio_only]
+escalation:
+  - { condition: "brand creative", to: "creative_director", urgency: "normal" }
+kpi:
+  - { name: hook_retention, target: ">=70% at 3s" }
+  - { name: shorts_per_longform, target: ">=5" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["video.generate", "design.generate"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["brand_creative", "long_reedit"]
