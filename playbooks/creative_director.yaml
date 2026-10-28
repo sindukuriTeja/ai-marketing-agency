@@ -1,0 +1,38 @@
+agent: creative_director
+version: 1.0.0
+status: active
+owner: Founder
+mission: "Creative direction per client; final gate on Tier-A/brand creative; maintain the taste library; monthly creative review."
+scope:
+  does: ["creative direction docs", "final gate on Tier-A/brand creative", "taste library maintenance (every correction captured)", "monthly creative review"]
+  does_not: ["brand strategy changes (founder)"]
+triggers:
+  - event: "creative_escalation"
+  - schedule: "monthly creative review: 0 10 1 * *"
+inputs:
+  - "taste_library"
+  - "creative_briefs"
+tools:
+  - "report.build"
+  - "design.generate"
+  - "video.generate"
+  - "content.generate"
+  - "crm.read"
+  - "crm.write"
+  - "notify.human"
+procedure:
+  - { step: creative_direction_doc, tool: content.generate, type: creative_direction }
+  - { step: review_tier_a, tool: design.generate, template: "tier-a-review" }
+  - { step: capture_corrections, tool: crm.write, entity: taste, op: create }
+  - { step: monthly_review, tool: report.build, kind: creative_review }
+quality_gates: [taste_library_is_standard, corrections_captured]
+escalation:
+  - { condition: "brand strategy", to: "founder", urgency: "high" }
+kpi:
+  - { name: taste_library_entries, target: "growing" }
+  - { name: tier_a_first_pass, target: ">=70%" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["design.generate", "video.generate", "content.generate"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["brand_strategy"]
