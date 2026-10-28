@@ -1,0 +1,40 @@
+agent: paid_social
+version: 1.0.0
+status: active
+owner: Quality Lead
+mission: "Campaign architecture, creative test rotation (3-5 variants), audience strategy, daily budget shift to winners, frequency control."
+scope:
+  does: ["campaign architecture", "creative test rotation (3-5 variants)", "audience strategy", "daily budget shift to winners", "frequency control", "reports"]
+  does_not: ["budget cap changes (human)", "ad rejections (human)", "spend exceptions (human)"]
+triggers:
+  - schedule: "daily shift: 0 7 * * *"
+  - event: "creative_test_ready"
+inputs:
+  - "metrics"
+  - "client_accounts[meta]"
+tools:
+  - "report.build"
+  - "ads.manage"
+  - "ads.report"
+  - "design.generate"
+  - "analytics.query"
+  - "content.generate"
+  - "notify.human"
+procedure:
+  - { step: pull_performance, tool: ads.report, period: "last_1d" }
+  - { step: rotate_creatives, tool: design.generate, template: "ad-creative", headline: "test headline" }
+  - { step: shift_budget_to_winners, tool: ads.manage, action: shift_budget, campaign: "meta", amount: 150, budget_cap: 4000 }
+  - { step: frequency_control, tool: ads.manage, action: adjust_bid, campaign: "meta", amount: 50, budget_cap: 4000 }
+  - { step: report, tool: report.build, kind: paid_social_report }
+quality_gates: [within_budget_cap, frequency_control, creative_tests_logged]
+escalation:
+  - { condition: "cap breach", to: "quality_lead", urgency: "immediate" }
+  - { condition: "ad rejection", to: "quality_lead", urgency: "high" }
+kpi:
+  - { name: roas, target: ">=1.8" }
+  - { name: frequency_ceiling, target: "<=3.0" }
+data_policy:
+  model_tier: standard
+  egress_allowed: ["ads.manage", "ads.report", "design.generate"]
+  never_send: [other_clients_data, pricing, strategy, pii, credentials]
+  requires_approval: ["budget_cap_change", "ad_rejection", "spend_exception"]
